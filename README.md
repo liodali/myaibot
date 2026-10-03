@@ -67,7 +67,7 @@ BOT_SECRET=your_secret dart run bin/simulate_webhook.dart "How do I reset my pas
 Get an admin **user token** from Chatwoot (Profile → Access Token), then:
 
 ```bash
-export CHATWOOT_URL=https://chatwoot.dev.adetify.com
+export CHATWOOT_URL=https://chatwoot.example.com
 export ACCOUNT_ID=1
 export USER_TOKEN=...
 export BOT_NAME="AI Support Bot"
@@ -120,6 +120,12 @@ Traefik and set `OUTGOING_URL` to that hostname.
   `HMAC-SHA256(secret, "<timestamp>.<raw_body>")` (timing-safe compare).
 - Use the **Agent Bot** access token (not a user token) so replies post as the bot.
 - Keep `.env` and `bot.json` out of git (they are ignored).
+
+## Deployment
+
+Production deploys run through **GitHub → Gitea pull-mirror → Jenkins**
+(never builds fork PRs; pipeline pinned to `main`). See [docs/deploy.md](docs/deploy.md)
+for the full wiring, and [jenkins/](jenkins/) for JCasC + Job DSL sources.
 
 ## Extending
 

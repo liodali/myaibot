@@ -1,0 +1,80 @@
+# Jenkins Configuration as Code — controller hardening.
+#
+# SECURITY MODEL:
+#   - Anonymous users get NOTHING (no read, no discovery).
+#   - The controller runs zero builds (numExecutors: 0); builds happen on
+#     agents only.
+#   - Markup formatter is plain text (kills description XSS vectors).
+#   - Agent port disabled unless you actually use inbound agents.
+#   - CSRF protection stays on (Jenkins default) — do not disable the crumb.
+#
+# Additional hardening that CANNOT be expressed in JCasC — do it in the
+# systemd unit / JAVA_ARGS:
+#   -Dhudson.model.DirectoryBrowserSupport.CSP=default-src 'none'
+#   -Djenkins.CLI.disabled=true          # disable remoting CLI entirely
+#   --httpListenAddress=127.0.0.1        # or bind to LAN/Tailscale IP only
+#
+# Apply: restart Jenkins with JENKINS_CONFIG_PATH or the CASC_JENKINS_CONFIG
+# env pointing at this file (see docs/deploy.md).
+
+jenkins:
+  # Never build on the controller.
+  numExecutors: 0
+
+  # Plain text everywhere — no HTML rendering of user-controlled fields.
+  markupFormatter:
+    raw:
+      data: plainText
+
+  # Inbound agents disabled. If you add agents launched over JNLP, set a
+  # fixed port here and firewall it to your LAN.
+  slaveAgentPort:
+    disabled: true
+
+  remotingSecurity:
+    # Agents must authenticate; blocks the classic unauthenticated-agent RCE.
+    enabled: true
+
+  # NOTE: keep the built-in CSRF crumb issuer enabled (Jenkins default).
+  # If you ever switch to a custom one, never disable CSRF.
+
+  authorizationStrategy:
+    globalMatrix:
+      permissions:
+        # Anonymous: nothing. Do not add Overall/Read for anonymous.
+        - "Overall/Administer:liodali"
+        # Authenticated users may see builds, not configure anything.
+        - "Overall/Read:authenticated"
+        - "Job/Read:authenticated"
+        - "Job/Build:authenticated"
+
+  # Replace with your real realm (LDAP, SSO, ...). Minimal local example kept
+  # for standalone setups — create the admin user before first restart with:
+  #   jenkins/cli or the setup wizard once.
+  securityRealm:
+    local:
+      allowsSignup: false
+      # users defined via UI; CASC requires at least one admin present.
+
+unclassified:
+  # Public URL used in links/emails. Adjust to your setup.
+  location:
+    url: "http://localhost:8080/"
+
+  # Never parse HTML in build/console descriptions.
+  # (kept explicit even though it is the default)
+  timestamper:
+    allPipelines: true
+
+  git:
+    # Fail the build if the repo URL does not match expectations instead of
+    # prompting interactively (SSRF hardening).
+    globalConfigName: "jenkins"
+    globalConfigEmail: "jenkins@localhost"
+
+  # Kill stale build workspaces.
+  workspaceupdater:
+    default: "clean"
+
+# Keep plugin vulnerabilities visible but not blocking deploys.
+# Run 'jenkins-plugin-cli --available-updates' via cron; see docs/deploy.md.

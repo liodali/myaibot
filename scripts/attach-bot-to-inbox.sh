@@ -2,7 +2,7 @@
 # Attach an existing Agent Bot to a Chatwoot inbox.
 #
 # Required env:
-#   CHATWOOT_URL  e.g. https://chatwoot.dev.adetify.com
+#   CHATWOOT_URL  e.g. https://chatwoot.example.com
 #   ACCOUNT_ID    e.g. 1
 #   USER_TOKEN    admin user access token
 #   INBOX_ID      e.g. 3

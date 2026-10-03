@@ -1,0 +1,30 @@
+# Production compose for the MyAIBot deployment on the Chatwoot host.
+# Image comes prebuilt from the Gitea container registry (built by Jenkins).
+#
+# Lives on the server (e.g. /opt/myaibot/docker-compose.yml), not required
+# in forks. The repo-root docker-compose.yml builds from source instead —
+# use that for local/dev.
+
+name: ai-bot
+
+services:
+  bot:
+    image: gitea.local:3000/liodali/myaibot:latest
+    env_file: .env
+    restart: always
+    healthcheck:
+      # No shell/curl in distroless — the binary probes its own /health.
+      test: ["CMD", "/app/bot", "--healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      chatwoot_internal:
+        aliases:
+          - ai-bot
+
+networks:
+  # Created by the Chatwoot compose stack. Verify with: podman network ls
+  chatwoot_internal:
+    external: true

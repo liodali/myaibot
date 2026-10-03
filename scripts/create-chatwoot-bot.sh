@@ -2,7 +2,7 @@
 # Create a Chatwoot Agent Bot and write its credentials to bot.json.
 #
 # Required env:
-#   CHATWOOT_URL  e.g. https://chatwoot.dev.adetify.com
+#   CHATWOOT_URL  e.g. https://chatwoot.example.com
 #   ACCOUNT_ID    e.g. 1
 #   USER_TOKEN    admin user access token (Profile → Access Token)
 #   BOT_NAME      display name, e.g. "AI Support Bot"
