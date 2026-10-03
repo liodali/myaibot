@@ -79,19 +79,50 @@ GitHub (public, source of truth)          your infra
    | `myaibot-mirror-clone` | Username/password | read-only mirror account |
    | `myaibot-registry` | Username/password | Gitea token with `write:package` |
    | `myaibot-deploy-ssh` | SSH username w/ private key | the forced-command key below |
-4. **Seed job (one-time bootstrap)**: New Item → Freestyle → *seed*.
+4. **Global environment variables** (System → Global properties →
+   Environment variables) — the real endpoints. These are read by
+   `jenkins/seed.groovy` (GITEA_MIRROR) and the `Jenkinsfile`
+   (GITEA_REGISTRY). They live ONLY in the controller, never in the
+   public repo:
+
+   | Variable | Example |
+   |---|---|
+   | `GITEA_MIRROR` | `http://gitea.internal:3000/liodali/myaibot.git` |
+   | `GITEA_REGISTRY` | `gitea.internal:3000` |
+
+   Prefer JCasC for it? Point `CASC_JENKINS_CONFIG` at a *directory*
+   holding both `jenkins/jenkins.yaml` and a server-local override
+   (git-ignored, root-only readable) such as `/var/lib/jenkins/casc/local.yaml`:
+
+   ```yaml
+   jenkins:
+     globalNodeProperties:
+       - environmentVariables:
+           env:
+             GITEA_MIRROR: "http://gitea.internal:3000/liodali/myaibot.git"
+             GITEA_REGISTRY: "gitea.internal:3000"
+   ```
+
+5. **Seed job (one-time bootstrap)**: New Item → Freestyle → *seed*.
    Build step "Process Job DSLs" → "Use the provided DSL script" → paste
-   `jenkins/seed.groovy` (after editing `GITEA_MIRROR` /
-   `GITEA_REGISTRY` at its top). Run once. The `myaibot` pipeline job now
-   exists; future changes flow through git + the seed.
+   `jenkins/seed.groovy`. Run once (approve the script under
+   Manage Jenkins → In-process Script Approval if it queues). The
+   `myaibot` pipeline job now exists with the injected endpoints;
+   future changes flow through git + the seed.
 
 ## 4. Chatwoot host: deploy user + forced command
 
 ```bash
 # Once, on the host:
 install -m 755 deploy/myaibot-deploy.sh /usr/local/bin/myaibot-deploy
-mkdir -p /opt/myaibot && cp deploy/compose.prod.yml /opt/myaibot/docker-compose.yml
+mkdir -p /opt/myaibot /etc/myaibot && cp deploy/compose.prod.yml /opt/myaibot/docker-compose.yml
 # .env (real secrets) lives in /opt/myaibot — never in git.
+
+# Real registry endpoint — lives on the host only, never in the repo:
+cat > /etc/myaibot/deploy.env <<'EOF'
+REGISTRY="gitea.internal:3000/liodali/myaibot"
+EOF
+chmod 600 /etc/myaibot/deploy.env
 
 useradd -m myaibot-deploy
 # In ~myaibot-deploy/.ssh/authorized_keys (single line):

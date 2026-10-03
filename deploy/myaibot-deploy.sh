@@ -11,8 +11,16 @@
 #   <tag>  optional image tag; defaults to :latest
 set -eu
 
-DEPLOY_DIR="/opt/myaibot"
-REGISTRY="gitea.local:3000/liodali/myaibot"
+# Real endpoints live here, NEVER in the public repo.
+# /etc/myaibot/deploy.env (root-readable only):
+#   REGISTRY="gitea.yourhost:3000/liodali/myaibot"
+#   DEPLOY_DIR="/opt/myaibot"
+if [ -f /etc/myaibot/deploy.env ]; then
+    . /etc/myaibot/deploy.env
+fi
+
+DEPLOY_DIR="${DEPLOY_DIR:-/opt/myaibot}"
+REGISTRY="${REGISTRY:-gitea.local:3000/liodali/myaibot}"
 TAG="${1:-latest}"
 
 cd "$DEPLOY_DIR"

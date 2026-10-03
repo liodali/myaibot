@@ -24,12 +24,26 @@ pipeline {
     }
 
     environment {
-        // Registry namespace in the self-hosted Gitea container registry.
+        // GITEA_REGISTRY comes from Jenkins GLOBAL environment variables
+        // (Manage Jenkins → System → Global properties) — set it there,
+        // never in this public file. GITEA_MIRROR is likewise global-env
+        // (used by the seed job).
         IMAGE = "${env.GITEA_REGISTRY}/liodali/myaibot"
         TAG = "main-${env.GIT_COMMIT?.take(7) ?: 'untagged'}"
     }
 
     stages {
+        stage('Preflight') {
+            steps {
+                script {
+                    if (!env.GITEA_REGISTRY?.trim()) {
+                        error('GITEA_REGISTRY is not set. Add it as a Jenkins ' +
+                              'global environment variable (see docs/deploy.md).')
+                    }
+                }
+            }
+        }
+
         stage('Analyze') {
             steps {
                 sh '''

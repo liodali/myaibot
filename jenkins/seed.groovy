@@ -9,20 +9,33 @@
 //      this is deliberately NOT a multibranch job.
 //   3. PRs from forks are simply never built. Fork users adapt the
 //      Jenkinsfile inside their fork for their own infra.
+//   4. NO real hostnames here. GITEA_MIRROR / GITEA_REGISTRY are injected
+//      from Jenkins global environment variables (Manage Jenkins →
+//      System → Global properties, or a server-local JCasC override file —
+//      see docs/deploy.md). Only placeholders live in this public repo.
 //
 // Bootstrap (one-time, see docs/deploy.md): create a freestyle job, add
 // "Process Job DSLs" → "Use the provided DSL script" → point at this file.
 // After that, job changes flow through git + this seed.
 
-// ── EDIT THESE TWO ─────────────────────────────────────────────────────────
-def GITEA_MIRROR = 'http://gitea.local:3000/liodali/myaibot.git'
-def GITEA_REGISTRY = 'gitea.local:3000'   // host[:port] of Gitea registry
-// ───────────────────────────────────────────────────────────────────────────
+import jenkins.model.Jenkins
+import hudson.slaves.EnvironmentVariablesNodeProperty
+
+def globalEnv = Jenkins.instance
+    .getGlobalNodeProperties()
+    .get(EnvironmentVariablesNodeProperty)
+    ?.envVars
+
+// Injected from Jenkins global env; placeholders keep the seed valid for
+// fork users running their own Jenkins without our variables.
+def GITEA_MIRROR = globalEnv?.get('GITEA_MIRROR')
+    ?: 'http://gitea.local:3000/liodali/myaibot.git'
+def GITEA_REGISTRY = globalEnv?.get('GITEA_REGISTRY') ?: 'gitea.local:3000'
 
 pipelineJob('myaibot') {
     displayName('MyAIBot')
     description(
-        'Chatwoot AI agent bot — build &amp; deploy. ' +
+        'Chatwoot AI agent bot — build & deploy. ' +
         'Triggers ONLY on pushes to main of the Gitea mirror. ' +
         'Never builds fork PRs.'
     )
