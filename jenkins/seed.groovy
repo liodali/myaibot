@@ -11,8 +11,8 @@
 //      Jenkinsfile inside their fork for their own infra.
 //   4. NO real hostnames here. GITEA_MIRROR / GITEA_REGISTRY are injected
 //      from Jenkins global environment variables (Manage Jenkins →
-//      System → Global properties, or a server-local JCasC override file —
-//      see docs/deploy.md). Only placeholders live in this public repo.
+//      System → Global properties — see docs/deploy.md). Only placeholders
+//      live in this public repo.
 //
 // Bootstrap (one-time, see docs/deploy.md): create a freestyle job, add
 // "Process Job DSLs" → "Use the provided DSL script" → point at this file.

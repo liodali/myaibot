@@ -11,7 +11,7 @@ GitHub (public, source of truth)          your infra
                                                     │ secret-signed, main only
                                                     ▼
                                          ┌─────────────────────────────┐
-                                         │ Jenkins (JCasC-hardened)    │
+                                         │ Jenkins (hardened via UI)    │
                                          │ seed.groovy → pipeline job  │
                                          │ analyze → build → push      │
                                          │ → forced-command SSH deploy │
@@ -37,7 +37,8 @@ GitHub (public, source of truth)          your infra
   live only in Jenkins credentials; `.env` lives only on the server.
 - **Deploy key is a forced command.** Even a full Jenkins compromise cannot
   open a shell on the Chatwoot host — it can only run `myaibot-deploy`.
-- **Controller runs no builds** (`numExecutors: 0`), anonymous gets nothing.
+- **Controller runs no builds** (executors: 0 via UI — see checklist),
+  anonymous gets nothing.
 
 ## 1. GitHub side (already done in-repo)
 
@@ -62,24 +63,31 @@ GitHub (public, source of truth)          your infra
      (generate: `openssl rand -hex 32`)
    - Trigger on: **Push events only**. Branch filter: `main`.
 
-## 3. Jenkins: JCasC + seed
+## 3. Jenkins: hardening + seed
 
-1. **Plugins**: `configuration-as-code`, `job-dsl`,
+1. **Plugins**: `job-dsl`,
    `generic-webhook-trigger`, `git`, `workflow-aggregator`,
    `ansicolor`, `timestamper`, `ws-cleanup`, `ssh-credentials`,
    `credentials-binding`.
-2. **JCasC**: point `CASC_JENKINS_CONFIG` at `jenkins/jenkins.yaml`
-   (mount it read-only; edit `authorizationStrategy` user + `location.url`).
-   Add the non-JCasC flags to `JAVA_ARGS` (documented at the top of that
-   file): disable remoting CLI, CSP header, bind to LAN-only address.
-3. **Credentials** (System → Global):
+2. **Hardening** (one-time, via the UI — Manage Jenkins → Security):
+   - Matrix-based authorization: your user → Administer; authenticated →
+     Overall/Read, Job/Read, Job/Build; **anonymous gets nothing**.
+   - Set **Number of executors to 0** on the controller — builds run on
+     agents only.
+   - Markup formatter: **plain text** (kills description XSS).
+   - Disable the inbound agent port if you don't use inbound agents.
+   - Keep CSRF protection on (default) — never disable crumbs.
+   - In the systemd unit / container env (`JAVA_ARGS`):
+     `-Djenkins.CLI.disabled=true` (kill remoting CLI) and bind the HTTP
+     listener to LAN/localhost only, or put Jenkins behind Tailscale.
+4. **Credentials** (System → Global):
    | ID | Type | Value |
    |---|---|---|
    | `myaibot-webhook-token` | Secret text | same secret as Gitea webhook |
    | `myaibot-mirror-clone` | Username/password | read-only mirror account |
    | `myaibot-registry` | Username/password | Gitea token with `write:package` |
    | `myaibot-deploy-ssh` | SSH username w/ private key | the forced-command key below |
-4. **Global environment variables** (System → Global properties →
+5. **Global environment variables** (System → Global properties →
    Environment variables) — the real endpoints. These are read by
    `jenkins/seed.groovy` (GITEA_MIRROR) and the `Jenkinsfile`
    (GITEA_REGISTRY). They live ONLY in the controller, never in the
@@ -90,20 +98,7 @@ GitHub (public, source of truth)          your infra
    | `GITEA_MIRROR` | `http://gitea.internal:3000/liodali/myaibot.git` |
    | `GITEA_REGISTRY` | `gitea.internal:3000` |
 
-   Prefer JCasC for it? Point `CASC_JENKINS_CONFIG` at a *directory*
-   holding both `jenkins/jenkins.yaml` and a server-local override
-   (git-ignored, root-only readable) such as `/var/lib/jenkins/casc/local.yaml`:
-
-   ```yaml
-   jenkins:
-     globalNodeProperties:
-       - environmentVariables:
-           env:
-             GITEA_MIRROR: "http://gitea.internal:3000/liodali/myaibot.git"
-             GITEA_REGISTRY: "gitea.internal:3000"
-   ```
-
-5. **Seed job (one-time bootstrap)**: New Item → Freestyle → *seed*.
+6. **Seed job (one-time bootstrap)**: New Item → Freestyle → *seed*.
    Build step "Process Job DSLs" → "Use the provided DSL script" → paste
    `jenkins/seed.groovy`. Run once (approve the script under
    Manage Jenkins → In-process Script Approval if it queues). The

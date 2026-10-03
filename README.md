@@ -125,7 +125,7 @@ Traefik and set `OUTGOING_URL` to that hostname.
 
 Production deploys run through **GitHub → Gitea pull-mirror → Jenkins**
 (never builds fork PRs; pipeline pinned to `main`). See [docs/deploy.md](docs/deploy.md)
-for the full wiring, and [jenkins/](jenkins/) for JCasC + Job DSL sources.
+for the full wiring, and [jenkins/](jenkins/) for the Job DSL seed.
 
 ## Extending
 
