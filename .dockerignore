@@ -1,0 +1,8 @@
+.dart_tool/
+.env
+bot.json
+*.log
+.DS_Store
+build/
+*.iml
+bot

@@ -1,0 +1,16 @@
+name: my_ai_bot
+description: >-
+  AI first-line support agent bot for Chatwoot. Answers customer messages via
+  any OpenAI-compatible LLM API. Built with Dart + Relic.
+version: 2.0.0
+publish_to: none
+
+environment:
+  sdk: ^3.7.0
+
+dependencies:
+  relic: 2.0.0-rc.2
+  crypto: ^3.0.6
+
+dev_dependencies:
+  lints: ^5.0.0

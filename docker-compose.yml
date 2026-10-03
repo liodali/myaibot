@@ -1,0 +1,28 @@
+name: ai-bot
+
+services:
+  bot:
+    build: .
+    image: localhost/ai-bot:latest
+    # Code and knowledge base are baked into the image at build time.
+    # To iterate on knowledge/faq.md without rebuilding, uncomment:
+    #   volumes:
+    #     - ./knowledge:/app/knowledge:Z
+    env_file: .env
+    restart: always
+    healthcheck:
+      # No shell/curl in distroless — the binary probes its own /health.
+      test: ["CMD", "/app/bot", "--healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      chatwoot_internal:
+        aliases:
+          - ai-bot
+
+networks:
+  # Created by the Chatwoot compose stack. Verify with: podman network ls
+  chatwoot_internal:
+    external: true
