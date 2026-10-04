@@ -17,6 +17,7 @@ pipeline {
     parameters {
         string(name: 'ACCOUNT_ID', defaultValue: '1', description: 'Chatwoot account id for the fake event')
         string(name: 'CONVERSATION_ID', defaultValue: '999999', description: 'Fake conversation id (does not exist — handler will log a fetch failure, that is OK)')
+        string(name: 'INBOX_ID', defaultValue: '', description: 'Inbox id to simulate routing (empty = no inbox field → routes to DEFAULT_PROJECT). Set to a PROJECTS_MAP key, e.g. 3, to watch it route to that project.')
     }
 
     stages {
@@ -50,6 +51,8 @@ body_d = {
     'account': {'id': int(os.environ.get('SMOKE_ACCOUNT', '1'))},
     'conversation': {'id': int(os.environ.get('SMOKE_CONV', '999999')), 'status': 'pending'},
 }
+if os.environ.get('SMOKE_INBOX', ''):
+    body_d['inbox'] = {'id': int(os.environ['SMOKE_INBOX'])}
 body = json.dumps(body_d).encode()
 ts = str(int(time.time()))
 sig = 'sha256=' + hmac.new(secret.encode(), (ts + '.' + body.decode()).encode(),
@@ -73,6 +76,7 @@ PYEOF
                     -e BOT_SECRET="$BOT_SECRET_VALUE" \
                     -e SMOKE_ACCOUNT="${ACCOUNT_ID}" \
                     -e SMOKE_CONV="${CONVERSATION_ID}" \
+                    -e SMOKE_INBOX="${INBOX_ID}" \
                     docker.io/library/python:3-alpine python - < smoke_webhook.py
                   rm -f smoke_webhook.py
                 '''
