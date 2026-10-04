@@ -71,6 +71,9 @@ pipelineJob('myaibot') {
             genericHeaderVariables {
                 genericHeaderVariable {
                     key('X-Gitea-Event')
+                    // required by GWT — regex applied to the header value;
+                    // empty = keep whole value
+                    regexpFilter('')
                 }
             }
             // Secret token lives in the Jenkins credential below; the same
@@ -95,15 +98,15 @@ pipelineJob('myaibot') {
                         // Read-only mirror account (no write access needed).
                         credentials('myaibot-mirror-clone')
                     }
-                    branches {
-                        branchName('*/main')
-                    }
+                    branches('*/main')
                     extensions {
                         cleanBeforeCheckout()
                         cloneOption {
                             shallow(true)
                             depth(1)
                             noTags(true)
+                            // required by job-dsl — empty = no shared clone
+                            reference('')
                             timeout(5)
                         }
                     }
