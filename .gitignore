@@ -10,4 +10,4 @@ bot.json
 build/
 *.iml
 bot
-.webhook-token
+.webhook-tokenscripts/.deploy_key

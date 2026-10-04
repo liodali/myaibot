@@ -94,9 +94,10 @@ pipeline {
                     credentialsId: 'myaibot-deploy-ssh',
                     keyFileVariable: 'DEPLOY_KEY')]) {
                     sh '''
+                      DEPLOY_HOST="${DEPLOY_HOST:-localhost}"
                       ssh -i "$DEPLOY_KEY" \
                           -o StrictHostKeyChecking=accept-new \
-                          myaibot-deploy@localhost "$TAG"
+                          myaibot-deploy@"$DEPLOY_HOST" "$TAG"
                     '''
                 }
             }

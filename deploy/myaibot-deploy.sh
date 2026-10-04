@@ -21,7 +21,14 @@ fi
 
 DEPLOY_DIR="${DEPLOY_DIR:-/opt/myaibot}"
 : "${REGISTRY:?set REGISTRY=\"<host[:port]>/<owner>/myaibot\" in /etc/myaibot/deploy.env}"
-TAG="${1:-latest}"
+# forced-command keys pass the client command via SSH_ORIGINAL_COMMAND;
+# $1 covers direct invocation; latest is the fallback.
+TAG="${1:-${SSH_ORIGINAL_COMMAND:-latest}}"
+# reject anything that is not a plausible image tag (defense in depth)
+case "$TAG" in
+  latest|main-[a-f0-9][a-f0-9]*) ;;
+  *) echo "refusing unexpected tag: $TAG" >&2; exit 2 ;;
+esac
 
 cd "$DEPLOY_DIR"
 
