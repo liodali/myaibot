@@ -80,8 +80,11 @@ pipeline {
                       REGISTRY_HOST="${GITEA_REGISTRY%%/*}"
                       printf '%s' "$REG_PASS" | podman login "$REGISTRY_HOST" \
                         -u "$REG_USER" --password-stdin
+                      VERSION=$(grep -m1 '^version:' pubspec.yaml | cut -d' ' -f2)
                       podman push "$IMAGE:$TAG"
                       podman push "$IMAGE:latest"
+                      podman tag "$IMAGE:$TAG" "$IMAGE:v$VERSION"
+                      podman push "$IMAGE:v$VERSION"
                     '''
                 }
             }
