@@ -49,6 +49,18 @@ GitHub (public, source of truth)          your infra
 
 ## 2. Gitea: pull mirror + registry + webhook
 
+Fastest path — one idempotent script (requires `curl` + `jq`):
+
+```bash
+export GITEA_URL="http://<gitea>:3000"
+export GITEA_TOKEN="<token with repo scope>"
+export JENKINS_WEBHOOK_URL="http://<jenkins>:8080/generic-webhook-trigger/invoke?token=<TOKEN>"
+bash scripts/gitea-setup.sh
+```
+
+It creates the mirror, the webhook, and forces a first sync — safe to
+re-run. Manual equivalents below.
+
 1. **Mirror**: New Migration → Git → URL
    `https://github.com/liodali/myaibot.git`. Auth: a read-only GitHub
    token (`public_repo` scope is enough for public). Sync interval: 8h+.
