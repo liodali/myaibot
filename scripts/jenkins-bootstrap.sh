@@ -42,7 +42,22 @@ jc() {
 }
 
 echo "==> [2/5] auth check"
-echo "    logged in as: $(jc whoami)"
+# REST first: isolates bad credentials from a proxy-broken CLI channel.
+if ! curl -sSf -u "$JENKINS_USER:$JENKINS_API_TOKEN" \
+        "$JENKINS_URL/whoAmI/api/json" > /dev/null; then
+    echo "    FAILED: REST auth rejected — check JENKINS_USER / JENKINS_API_TOKEN." >&2
+    exit 1
+fi
+if ! WHOAMI=$(jc whoami 2> /tmp/jenkins-cli.err); then
+    echo "    FAILED: CLI handshake (auth itself is OK — a reverse proxy is" >&2
+    echo "    breaking the CLI channel). Options:" >&2
+    echo "    a) run this script ON the Jenkins host with JENKINS_URL=http://localhost:8080" >&2
+    echo "    b) fix the proxy: proxy_http_version 1.1; proxy_request_buffering off;" >&2
+    echo "       proxy_buffering off;  (for the Jenkins location)" >&2
+    echo "    Details: $(head -c 300 /tmp/jenkins-cli.err)" >&2
+    exit 1
+fi
+echo "    logged in as: $WHOAMI"
 if ! jc list-plugins 2>/dev/null | grep -q '^job-dsl '; then
     echo "    WARNING: job-dsl plugin not found — install it (Manage Jenkins → Plugins) and rerun" >&2
 fi
