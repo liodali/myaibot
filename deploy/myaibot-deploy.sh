@@ -32,6 +32,12 @@ esac
 
 cd "$DEPLOY_DIR"
 
+# If podman-compose cannot attach to chatwoot_internal (network owned by
+# the root podman instance while this user is rootless), prefix the two
+# podman-compose calls with `sudo -n` and grant, in sudoers:
+#   myaibot-deploy ALL=(root) NOPASSWD: /usr/bin/podman-compose
+# The forced command + tag validation above bound the abuse surface.
+
 # Pin the requested tag in a drop-in override, then pull + recreate.
 sed "s|image: .*myaibot:.*|image: ${REGISTRY}:${TAG}|" \
     docker-compose.yml > docker-compose.deploy.yml
