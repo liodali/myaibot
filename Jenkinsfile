@@ -131,7 +131,6 @@ pipeline {
                         --network chatwoot_internal \
                         --network-alias ai-bot \
                         --network-alias aibot.internal \
-                        -p 127.0.0.1:3100:3000 \
                         --restart always \
                         --env-file "$RUNTIME_DIR/.env" \
                         "$ROLLOUT"
