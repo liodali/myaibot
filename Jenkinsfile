@@ -49,7 +49,10 @@ pipeline {
         stage('Analyze') {
             steps {
                 sh '''
-                  podman run --rm -v "$PWD":/app -w /app dart:stable \
+                  # fully-qualified name: RHEL-family podman rejects short
+                  # names without a TTY to prompt for registry choice
+                  podman run --rm -v "$PWD":/app -w /app \
+                    docker.io/library/dart:stable \
                     sh -c "dart pub get && dart analyze --fatal-infos"
                 '''
             }
