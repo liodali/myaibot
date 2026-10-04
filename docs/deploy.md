@@ -53,6 +53,26 @@ GitHub (public, source of truth)          your infra
    `https://github.com/liodali/myaibot.git`. Auth: a read-only GitHub
    token (`public_repo` scope is enough for public). Sync interval: 8h+.
    The mirror stays read-only — nobody pushes to it.
+   CLI equivalent (`tea` has no mirror support — use the API):
+
+   ```bash
+   curl -X POST "http://<gitea>:3000/api/v1/repos/migrate" \
+     -H "Authorization: token $GITEA_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "clone_addr": "https://github.com/liodali/myaibot.git",
+       "repo_owner": "liodali",
+       "repo_name": "myaibot",
+       "mirror": true,
+       "mirror_interval": "8h0m0s",
+       "service": "github",
+       "private": true
+     }'
+
+   # force an instant sync later (≈ "Synchronize Now"):
+   curl -X POST "http://<gitea>:3000/api/v1/repos/liodali/myaibot/mirror-sync" \
+     -H "Authorization: token $GITEA_TOKEN"
+   ```
 2. **Registry**: the built-in Gitea container registry serves this repo at
    `gitea.local:3000/liodali/myaibot`. Create a token (Settings →
    Applications) with `write:package` for the Jenkins push user; store it
@@ -69,6 +89,24 @@ GitHub (public, source of truth)          your infra
      HMAC header, which GWT does not verify — the `?token=` in the URL is
      the authentication. This is why the endpoint must stay LAN-only.
    - Trigger on: **Push events only**. Branch filter: `main`.
+   CLI equivalent (API — webhooks are also not covered by `tea`):
+
+   ```bash
+   curl -X POST "http://<gitea>:3000/api/v1/repos/liodali/myaibot/webhooks" \
+     -H "Authorization: token $GITEA_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "type": "gitea",
+       "active": true,
+       "events": ["push"],
+       "branch_filter": "main",
+       "config": {
+         "url": "http://<jenkins>:8080/generic-webhook-trigger/invoke?token=<TOKEN>",
+         "content_type": "json",
+         "http_method": "POST"
+       }
+     }'
+   ```
 
 ## 3. Jenkins: hardening + seed
 
