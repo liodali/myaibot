@@ -79,6 +79,25 @@ PYEOF
             }
         }
 
+        stage('Chatwoot API reachability') {
+            steps {
+                sh '''
+                  set -e
+                  export CONTAINER_HOST="unix:///run/podman/podman.sock"
+                  C=$(grep -m1 '^CHATWOOT_URL=' /root/myaibot-runtime/.env | cut -d= -f2-)
+                  echo "--- probing Chatwoot at $C (no redirect follow):"
+                  podman run --rm --network chatwoot_internal \
+                    docker.io/curlimages/curl:latest -s -o /dev/null \
+                    -w "HTTP %{http_code}  (redirect: %{redirect_url})\n" "$C/"
+                  echo "--- with redirects followed (what the Dart client does):"
+                  podman run --rm --network chatwoot_internal \
+                    docker.io/curlimages/curl:latest -s -o /dev/null -L -k \
+                    -w "HTTP %{http_code} via %{url_effective}\n" "$C/" || \
+                    echo "follow failed (TLS mismatch — force_ssl likely ON)"
+                '''
+            }
+        }
+
         stage('Bot log tail') {
             steps {
                 sh '''
