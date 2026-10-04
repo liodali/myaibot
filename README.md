@@ -107,7 +107,7 @@ Traefik and set `OUTGOING_URL` to that hostname.
 
 ## Customizing
 
-- **Knowledge base:** edit `knowledge/faq.md` — it is injected into the system prompt.
+- **Knowledge base:** edit `projects/<name>/knowledge/faq.md` — it is injected into the system prompt.
 - **Persona:** change `SYSTEM_PROMPT`.
 - **Escalation:** the model is told to emit `[HANDOFF]` when unsure; the bot then
   posts a private note and reopens the conversation for a human.
@@ -126,6 +126,19 @@ Traefik and set `OUTGOING_URL` to that hostname.
 Production deploys run through **GitHub → Gitea pull-mirror → Jenkins**
 (never builds fork PRs; pipeline pinned to `main`). See [docs/deploy.md](docs/deploy.md)
 for the full wiring, and [jenkins/](jenkins/) for the Job DSL seed.
+
+## Multiple projects (one bot per app)
+
+The image is project-agnostic; each app gets its own deployment with its own
+knowledge, persona, tokens, and Chatwoot inbox:
+
+1. `projects/<name>/knowledge/faq.md` — that app's FAQ
+2. Jenkins file credential `myaibot-botenv-<name>` — that app's `.env`
+3. Chatwoot: one Agent Bot per app → webhook `http://aibot-<name>.internal:3000/webhook`, attached to that app's inbox
+4. Run the pipeline with `PROJECT=<name>` — builds, tags (`<name>-main-<sha>`), deploys `ai-bot-<name>`
+
+`PROJECT=default` (what webhook builds use) is the original bot — fully
+backwards compatible. See `docs/deploy.md` for the full chain.
 
 ## Extending
 
