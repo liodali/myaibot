@@ -75,8 +75,8 @@ pipelineJob('myaibot') {
                 }
             }
             // Secret token lives in the Jenkins credential below; the same
-            // value is set as the Gitea webhook's secret. GWT rejects
-            // requests that do not carry it.
+            // value is embedded in the Gitea webhook's invoke URL as
+            // ?token=... — GWT routes requests to jobs by that token.
             tokenCredentialId('myaibot-webhook-token')
             causeString('Push to $GITEA_REF ($GITEA_AFTER)')
             printContributedVariables(false)

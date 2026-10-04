@@ -31,8 +31,9 @@ GitHub (public, source of truth)          your infra
 - **The pipeline script is only ever read from the mirror's `main`**
   (`cpsScm → */main`). Forks can edit their Jenkinsfile freely; it never
   reaches our Jenkins.
-- **Webhook is secret-validated.** Gitea sends `X-Gitea-Signature`; the GWT
-  token credential must match.
+- **Webhook is token-gated.** Only requests carrying the secret token in
+  the invoke URL (`?token=...`) match the job. Gitea's `X-Gitea-Signature`
+  is not verified by GWT — LAN-only reachability is the outer wall.
 - **No secrets in the repo.** Registry creds, deploy key, and webhook token
   live only in Jenkins credentials; `.env` lives only on the server.
 - **Deploy key is a forced command.** Even a full Jenkins compromise cannot
@@ -57,10 +58,16 @@ GitHub (public, source of truth)          your infra
    Applications) with `write:package` for the Jenkins push user; store it
    as Jenkins credential `myaibot-registry` (username/password).
 3. **Webhook**: repo Settings → Webhooks:
-   - Target URL: `http://<jenkins-host>:8080/generic-webhook-trigger/invoke`
+   - Target URL:
+     `http://<jenkins-host>:8080/generic-webhook-trigger/invoke?token=<TOKEN>`
+     where `<TOKEN>` is the value of Jenkins credential
+     `myaibot-webhook-token` (generate: `openssl rand -hex 32`).
+     **GWT matches jobs by this token** — no token in the URL, no job
+     selected, nothing happens.
    - Content type: `application/json`
-   - Secret: the value of Jenkins credential `myaibot-webhook-token`
-     (generate: `openssl rand -hex 32`)
+   - Secret field: optional. Gitea uses it to send an `X-Gitea-Signature`
+     HMAC header, which GWT does not verify — the `?token=` in the URL is
+     the authentication. This is why the endpoint must stay LAN-only.
    - Trigger on: **Push events only**. Branch filter: `main`.
 
 ## 3. Jenkins: hardening + seed
