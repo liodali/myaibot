@@ -11,6 +11,9 @@ RUN dart pub get
 COPY lib lib
 COPY bin bin
 
+# Analyze gates the build: warnings/infos fail the image compile.
+RUN dart pub get && dart analyze --fatal-infos
+
 RUN dart compile exe bin/server.dart -o /app/bot
 
 # ---- Stage 2: minimal runtime ------------------------------------------------

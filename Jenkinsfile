@@ -46,17 +46,9 @@ pipeline {
             }
         }
 
-        stage('Analyze') {
-            steps {
-                sh '''
-                  # fully-qualified name: RHEL-family podman rejects short
-                  # names without a TTY to prompt for registry choice
-                  podman run --rm -v "$PWD":/app -w /app \
-                    docker.io/library/dart:stable \
-                    sh -c "dart pub get && dart analyze --fatal-infos"
-                '''
-            }
-        }
+        // Analysis runs inside the image build (see Dockerfile: dart
+        // analyze gates the compile) — no workspace bind-mounts, which
+        // rootless podman on RHEL rejects (statfs ENOENT).
 
         stage('Build image') {
             steps {
