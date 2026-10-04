@@ -15,7 +15,11 @@ Future<void> main() async {
       'model': config.llm.model,
       'onlyWhenPending': config.onlyWhenPending,
       'handoffKeyword': config.handoffKeyword,
-      'knowledgeFile': config.knowledgeFile,
+      'projectsRoot': config.projectsRoot,
+      'defaultProject': config.defaultProject,
+      'projectsMap': config.projectsMap.map(
+        (k, v) => MapEntry(k.toString(), v),
+      ),
       'maxHistory': config.maxHistory,
       'signatureVerification': config.botSecret.isNotEmpty,
     }),

@@ -127,18 +127,24 @@ Production deploys run through **GitHub → Gitea pull-mirror → Jenkins**
 (never builds fork PRs; pipeline pinned to `main`). See [docs/deploy.md](docs/deploy.md)
 for the full wiring, and [jenkins/](jenkins/) for the Job DSL seed.
 
-## Multiple projects (one bot per app)
+## Multiple projects (one bot, routed by chat)
 
-The image is project-agnostic; each app gets its own deployment with its own
-knowledge, persona, tokens, and Chatwoot inbox:
+One bot container serves every app. Chatwoot routes each chat by inbox: one
+Agent Bot is attached to **all** inboxes, every event carries `inbox.id`,
+and `PROJECTS_MAP` selects that project's knowledge base:
 
-1. `projects/<name>/knowledge/faq.md` — that app's FAQ
-2. Jenkins file credential `myaibot-botenv-<name>` — that app's `.env`
-3. Chatwoot: one Agent Bot per app → webhook `http://aibot-<name>.internal:3000/webhook`, attached to that app's inbox
-4. Run the pipeline with `PROJECT=<name>` — builds, tags (`<name>-main-<sha>`), deploys `ai-bot-<name>`
+```
+PROJECTS_MAP=3:wasfa,7:exchangeconvertapp     # inbox id -> project dir
+DEFAULT_PROJECT=default                        # unmapped inboxes
+```
 
-`PROJECT=default` (what webhook builds use) is the original bot — fully
-backwards compatible. See `docs/deploy.md` for the full chain.
+- Per-project knowledge: `projects/<name>/knowledge/faq.md` (baked into the
+  image at build time)
+- Optional per-project persona: `projects/<name>/persona.md` (falls back to
+  `SYSTEM_PROMPT`)
+- New project = add the folder + a map entry + redeploy
+- Unmapped inbox or missing FAQ → the bot answers with persona only and
+  escalates unknowns to a human
 
 ## Extending
 

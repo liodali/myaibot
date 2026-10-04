@@ -66,8 +66,13 @@ Future<void> handleIncoming(AppConfig config, ChatwootEvent event) async {
     return;
   }
 
+  // Which project's knowledge applies? The inbox id routes the chat.
+  final project = config.projectFor(event.inboxId);
   final preview = text.length > 100 ? text.substring(0, 100) : text;
-  logger.info('conv=$conversationId account=$accountId: $preview');
+  logger.info(
+    'conv=$conversationId account=$accountId '
+    'inbox=${event.inboxId} project=$project: $preview',
+  );
 
   var history = <ChatMessage>[];
   try {
@@ -89,7 +94,7 @@ Future<void> handleIncoming(AppConfig config, ChatwootEvent event) async {
     history.add(ChatMessage(Role.user, text));
   }
 
-  final systemPrompt = await buildSystemPrompt(config);
+  final systemPrompt = buildSystemPrompt(config, project);
   final answer = await chat(config, [
     ChatMessage(Role.system, systemPrompt),
     ...history,

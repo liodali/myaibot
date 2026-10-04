@@ -16,8 +16,6 @@ pipeline {
     agent any
 
     parameters {
-        string(name: 'PROJECT', defaultValue: 'default',
-               description: 'Project to build/deploy (a directory under projects/). "default" = the original bot; e.g. wasfa, exchangeconvertapp')
         string(name: 'DEPLOY_TAG', defaultValue: '',
                description: 'Existing image tag to redeploy (leave empty for the current build)')
     }
@@ -34,12 +32,7 @@ pipeline {
         // set as a Jenkins global env variable — e.g. "gitea:3000/<owner>/myaibot".
         // Never real values in this public file.
         IMAGE = "${env.GITEA_REGISTRY}"
-        // per-project tag prefix: default keeps the legacy main-<sha> scheme
-        PFX = "${env.PROJECT == 'default' ? '' : env.PROJECT + '-'}"
-        TAG = "${env.PFX}main-${env.GIT_COMMIT?.take(7) ?: 'untagged'}"
-        // container identity: default keeps the legacy names/aliases
-        CNAME = "${env.PROJECT == 'default' ? 'ai-bot' : 'ai-bot-' + env.PROJECT}"
-        CALIAS = "${env.PROJECT == 'default' ? 'aibot.internal' : 'aibot-' + env.PROJECT + '.internal'}"
+        TAG = "main-${env.GIT_COMMIT?.take(7) ?: 'untagged'}"
     }
 
     stages {
@@ -67,7 +60,6 @@ pipeline {
                 // amd64 explicitly: agents may be arm64, prod is x86.
                 sh '''
                   podman build \
-                    --build-arg PROJECT="$PROJECT" \
                     --platform linux/amd64 \
                     --layers \
                     -t "$IMAGE:$TAG" \
@@ -104,9 +96,7 @@ pipeline {
                 withCredentials([
                     usernamePassword(credentialsId: 'myaibot-registry',
                         usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS'),
-                    file(credentialsId: (env.PROJECT == 'default'
-                        ? 'myaibot-botenv'
-                        : "myaibot-botenv-${env.PROJECT}"), variable: 'ENVFILE'),
+                    file(credentialsId: 'myaibot-botenv', variable: 'ENVFILE'),
                 ]) {
                     sh '''
                       set -e
@@ -135,23 +125,24 @@ pipeline {
                       echo "rolling out: $ROLLOUT"
 
                       # stable runtime dir (survives workspace cleanup)
-                      RUNTIME_DIR="$HOME/myaibot-runtime/$PROJECT"
+                      RUNTIME_DIR="$HOME/myaibot-runtime"
                       mkdir -p "$RUNTIME_DIR"
                       cp "$ENVFILE" "$RUNTIME_DIR/.env"
                       chmod 600 "$RUNTIME_DIR/.env"
 
                       podman pull --creds "$REG_USER:$REG_PASS" "$ROLLOUT"
-                      podman rm -f "$CNAME" 2>/dev/null || true
-                      podman run -d --name "$CNAME" \
+                      podman rm -f ai-bot 2>/dev/null || true
+                      podman run -d --name ai-bot \
                         --network chatwoot_internal \
-                        --network-alias "$CALIAS" \
+                        --network-alias ai-bot \
+                        --network-alias aibot.internal \
                         --restart always \
                         --env-file "$RUNTIME_DIR/.env" \
                         "$ROLLOUT"
 
                       sleep 5
-                      podman ps --filter name="$CNAME" --format "{{.Names}}  {{.Status}}"
-                      podman logs --tail 5 "$CNAME" || true
+                      podman ps --filter name=ai-bot --format "{{.Names}}  {{.Status}}"
+                      podman logs --tail 5 ai-bot || true
                     '''
                 }
             }

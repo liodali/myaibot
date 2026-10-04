@@ -78,6 +78,21 @@ double doubleEnv(String name, double fallback) {
 
 String _trimUrl(String url) => url.replaceAll(RegExp(r'/+$'), '');
 
+/// Parse "inboxId:project,inboxId:project" into a routing map.
+Map<int, String> parseProjectsMap(String raw) {
+  final map = <int, String>{};
+  for (final entry in raw.split(',')) {
+    final t = entry.trim();
+    if (t.isEmpty) continue;
+    final idx = t.indexOf(':');
+    if (idx <= 0) continue;
+    final id = int.tryParse(t.substring(0, idx).trim());
+    final name = t.substring(idx + 1).trim();
+    if (id != null && name.isNotEmpty) map[id] = name;
+  }
+  return map;
+}
+
 class LlmConfig {
   final String baseUrl;
   final String model;
@@ -106,12 +121,24 @@ class AppConfig {
   final LlmConfig llm;
 
   final String systemPrompt;
-  final String knowledgeFile;
+  final String projectsRoot;
+  final String defaultProject;
+  final Map<int, String> projectsMap;
+
+  /// Which project's knowledge applies to a chat from [inboxId]?
+  /// Unmapped inboxes fall back to [defaultProject].
+  String projectFor(int? inboxId) =>
+      inboxId == null
+          ? defaultProject
+          : (projectsMap[inboxId] ?? defaultProject);
   final int maxHistory;
   final bool onlyWhenPending;
   final String handoffKeyword;
 
   AppConfig._({
+    required this.projectsRoot,
+    required this.defaultProject,
+    required this.projectsMap,
     required this.port,
     required this.host,
     required this.logLevel,
@@ -120,7 +147,6 @@ class AppConfig {
     required this.botSecret,
     required this.llm,
     required this.systemPrompt,
-    required this.knowledgeFile,
     required this.maxHistory,
     required this.onlyWhenPending,
     required this.handoffKeyword,
@@ -151,7 +177,9 @@ class AppConfig {
       'You are a friendly, concise customer support assistant. '
           "Reply in the customer's language.",
     ),
-    knowledgeFile: optionalEnv('KNOWLEDGE_FILE', 'knowledge/faq.md'),
+    projectsRoot: optionalEnv('PROJECTS_ROOT', '/app/projects'),
+    defaultProject: optionalEnv('DEFAULT_PROJECT', 'default'),
+    projectsMap: parseProjectsMap(optionalEnv('PROJECTS_MAP', '')),
     maxHistory: intEnv('MAX_HISTORY', 10),
     onlyWhenPending: boolEnv('ONLY_WHEN_PENDING', true),
     handoffKeyword: optionalEnv('HANDOFF_KEYWORD', '[HANDOFF]'),
