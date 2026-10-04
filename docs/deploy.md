@@ -14,7 +14,7 @@ GitHub (public, source of truth)          your infra
                                          │ Jenkins (hardened via UI)    │
                                          │ seed.groovy → pipeline job  │
                                          │ analyze → build → push      │
-                                         │ → forced-command SSH deploy │
+                                         │ → podman-socket deploy      │
                                          └──────────┬──────────────────┘
                                                     │ pull from Gitea registry
                                                     ▼
@@ -36,8 +36,10 @@ GitHub (public, source of truth)          your infra
   is not verified by GWT — LAN-only reachability is the outer wall.
 - **No secrets in the repo.** Registry creds, deploy key, and webhook token
   live only in Jenkins credentials; `.env` lives only on the server.
-- **Deploy key is a forced command.** Even a full Jenkins compromise cannot
-  open a shell on the Chatwoot host — it can only run `myaibot-deploy`.
+- **Deploy runs over the agent's podman socket** (same VPS as Chatwoot —
+  no SSH, no deploy user). The socket is the trust boundary: whoever
+  controls Jenkins controls all containers on that host. Treat the
+  controller's security accordingly.
 - **Controller runs no builds** (executors: 0 via UI — see checklist),
   anonymous gets nothing.
 
@@ -142,7 +144,6 @@ re-run. Manual equivalents below.
    | `myaibot-webhook-token` | Secret text | same secret as Gitea webhook |
    | `myaibot-mirror-clone` | Username/password | read-only mirror account |
    | `myaibot-registry` | Username/password | Gitea token with `write:package` |
-   | `myaibot-deploy-ssh` | SSH username w/ private key | the forced-command key below |
 5. **Global environment variables** (System → Global properties →
    Environment variables) — the real endpoints. These are read by
    `jenkins/seed.groovy` (GITEA_MIRROR) and the `Jenkinsfile`
@@ -161,28 +162,22 @@ re-run. Manual equivalents below.
    `myaibot` pipeline job now exists with the injected endpoints;
    future changes flow through git + the seed.
 
-## 4. Chatwoot host: deploy user + forced command
+## 4. Runtime layout (created by the pipeline itself)
 
-```bash
-# Once, on the host:
-install -m 755 deploy/myaibot-deploy.sh /usr/local/bin/myaibot-deploy
-mkdir -p /opt/myaibot /etc/myaibot && cp deploy/compose.prod.yml /opt/myaibot/docker-compose.yml
-# .env (real secrets) lives in /opt/myaibot — never in git.
+No host setup required. The Deploy stage talks to the podman socket the
+Jenkins agent already has (`CONTAINER_HOST` auto-detected; override with the
+`PODMAN_SOCK` global env), pulls the image with `--creds`, and runs:
 
-# Real registry endpoint — lives on the host only, never in the repo:
-cat > /etc/myaibot/deploy.env <<'EOF'
-REGISTRY="gitea.internal:3000/<owner>/myaibot"
-EOF
-chmod 600 /etc/myaibot/deploy.env
-
-useradd -m myaibot-deploy
-# In ~myaibot-deploy/.ssh/authorized_keys (single line):
-#   command="/usr/local/bin/myaibot-deploy",no-pty,no-port-forwarding,\
-#   no-X11-forwarding,no-agent-forwarding ssh-ed25519 AAAA... jenkins-deploy
-# The matching private key is Jenkins credential `myaibot-deploy-ssh`.
-# myaibot-deploy needs podman + network access; grant sudo (NOPASSWD) for
-# podman-compose only if you cannot run rootless.
 ```
+~/myaibot-runtime/.env                  # bot secrets, copied from the
+                                        # myaibot-botenv file credential
+podman run -d --name ai-bot \
+  --network chatwoot_internal --network-alias ai-bot \
+  --restart always --env-file ~/myaibot-runtime/.env \
+  gitea.<host>/<owner>/myaibot:<tag>
+```
+
+`deploy/compose.prod.yml` remains in the repo for humans preferring compose.
 
 ## 5. Agent prep (wherever builds run)
 
@@ -195,7 +190,6 @@ No Docker socket, no root daemon, no host mounts during builds.
 
 ## 6. Rolling back
 
-```bash
-ssh myaibot-deploy@chatwoot-host "main-abc1234"   # any previous tag
-```
-Tags are `main-<short sha>`; the last 20 build tags are kept in the registry.
+Run the `myaibot` job with the `DEPLOY_TAG` parameter set to any previous
+tag (e.g. `main-abc1234`); the Deploy stage rolls that image out instead.
+Tags are `main-<short sha>`; the last 20 are kept in the registry.

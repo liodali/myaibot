@@ -88,16 +88,55 @@ pipeline {
                 ok 'Deploy'
             }
             steps {
-                // SSH key is a forced-command key: even if leaked from
-                // Jenkins, it can only run the deploy script, nothing else.
-                withCredentials([sshUserPrivateKey(
-                    credentialsId: 'myaibot-deploy-ssh',
-                    keyFileVariable: 'DEPLOY_KEY')]) {
+                withCredentials([
+                    usernamePassword(credentialsId: 'myaibot-registry',
+                        usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS'),
+                    file(credentialsId: 'myaibot-botenv', variable: 'ENVFILE'),
+                ]) {
                     sh '''
-                      DEPLOY_HOST="${DEPLOY_HOST:-localhost}"
-                      ssh -i "$DEPLOY_KEY" \
-                          -o StrictHostKeyChecking=accept-new \
-                          myaibot-deploy@"$DEPLOY_HOST" "$TAG"
+                      set -e
+                      # Talk to the host podman socket directly — the agent runs on
+                      # the same VPS as the Chatwoot stack. No SSH, no deploy user.
+                      # NOTE: socket access is the trust boundary here (it can
+                      # manage all containers on the host); Jenkins is the client.
+                      if [ -n "${PODMAN_SOCK:-}" ]; then
+                        export CONTAINER_HOST="$PODMAN_SOCK"
+                      else
+                        for s in /run/podman/podman.sock \
+                                 /run/user/$(id -u)/podman/podman.sock \
+                                 /var/run/docker.sock; do
+                          [ -S "$s" ] && export CONTAINER_HOST="unix://$s" && break
+                        done
+                      fi
+                      [ -n "${CONTAINER_HOST:-}" ] || { echo "no podman socket found" >&2; exit 1; }
+                      echo "socket: $CONTAINER_HOST"
+
+                      # webhook builds roll out $TAG; manual runs may pass DEPLOY_TAG
+                      if [ -n "${DEPLOY_TAG:-}" ]; then
+                        ROLLOUT="$IMAGE:$DEPLOY_TAG"
+                      else
+                        ROLLOUT="$IMAGE:$TAG"
+                      fi
+                      echo "rolling out: $ROLLOUT"
+
+                      # stable runtime dir (survives workspace cleanup)
+                      RUNTIME_DIR="$HOME/myaibot-runtime"
+                      mkdir -p "$RUNTIME_DIR"
+                      cp "$ENVFILE" "$RUNTIME_DIR/.env"
+                      chmod 600 "$RUNTIME_DIR/.env"
+
+                      podman pull --creds "$REG_USER:$REG_PASS" "$ROLLOUT"
+                      podman rm -f ai-bot 2>/dev/null || true
+                      podman run -d --name ai-bot \
+                        --network chatwoot_internal \
+                        --network-alias ai-bot \
+                        --restart always \
+                        --env-file "$RUNTIME_DIR/.env" \
+                        "$ROLLOUT"
+
+                      sleep 5
+                      podman ps --filter name=ai-bot --format "{{.Names}}  {{.Status}}"
+                      podman logs --tail 5 ai-bot || true
                     '''
                 }
             }
