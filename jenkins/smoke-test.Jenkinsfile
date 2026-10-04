@@ -39,23 +39,16 @@ pipeline {
                   set -e
                   export CONTAINER_HOST="unix:///run/podman/podman.sock"
                   cat > smoke_webhook.py <<'PYEOF'
-import hmac, hashlib, json, time, urllib.request
+import hmac, hashlib, json, os, time, urllib.request
 
-env = {}
-for line in open('/runtime/.env'):
-    line = line.strip()
-    if '=' in line and not line.startswith('#'):
-        k, v = line.split('=', 1)
-        env[k.strip()] = v.strip().strip('"').strip("'")
-
-secret = env.get('BOT_SECRET', '')
+secret = os.environ.get('BOT_SECRET', '')
 body_d = {
     'event': 'message_created',
     'id': int(time.time() * 1000),
     'content': 'smoke test ping',
     'message_type': 'incoming',
-    'account': {'id': int(env.get('SMOKE_ACCOUNT', '1'))},
-    'conversation': {'id': int(env.get('SMOKE_CONV', '999999')), 'status': 'pending'},
+    'account': {'id': int(os.environ.get('SMOKE_ACCOUNT', '1'))},
+    'conversation': {'id': int(os.environ.get('SMOKE_CONV', '999999')), 'status': 'pending'},
 }
 body = json.dumps(body_d).encode()
 ts = str(int(time.time()))
@@ -73,13 +66,14 @@ except urllib.error.HTTPError as e:
     raise SystemExit(1)
 PYEOF
                   echo "--- POST http://ai-bot:3000/webhook (HMAC-signed) :"
-                  podman run --rm --network chatwoot_internal \
-                    --security-opt label=disable \
-                    -v "$PWD/smoke_webhook.py:/smoke.py:ro" \
-                    -v /root/myaibot-runtime/.env:/runtime/.env:ro \
+                  # no bind mounts (podman service blocks them): secret via env,
+                  # script via stdin
+                  BOT_SECRET_VALUE=$(grep -m1 '^BOT_SECRET=' /root/myaibot-runtime/.env | cut -d= -f2-)
+                  podman run --rm -i --network chatwoot_internal \
+                    -e BOT_SECRET="$BOT_SECRET_VALUE" \
                     -e SMOKE_ACCOUNT="${ACCOUNT_ID}" \
                     -e SMOKE_CONV="${CONVERSATION_ID}" \
-                    docker.io/library/python:3-alpine python /smoke.py
+                    docker.io/library/python:3-alpine python - < smoke_webhook.py
                   rm -f smoke_webhook.py
                 '''
             }
