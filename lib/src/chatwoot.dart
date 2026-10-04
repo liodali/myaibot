@@ -9,6 +9,10 @@ import '../src/types.dart';
 Map<String, String> _authHeaders(AppConfig config) => {
   'Content-Type': 'application/json',
   'api_access_token': config.botToken,
+  // Rails runs with FORCE_SSL; the proxy normally proves the original
+  // scheme via this header. We call rails directly on the internal
+  // network, so we send it ourselves to avoid the http->https 301.
+  'X-Forwarded-Proto': 'https',
 };
 
 String _messagesUrl(AppConfig config, int accountId, int conversationId) =>
