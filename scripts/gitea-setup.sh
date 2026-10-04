@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # One-shot, idempotent Gitea setup for the MyAIBot deploy chain:
+#   0. verifies the Gitea token works
 #   1. creates the GitHub pull-mirror (if missing)
 #   2. creates the Jenkins webhook        (if missing)
 #   3. forces an initial mirror sync
@@ -42,7 +43,25 @@ api() {
        -H "Content-Type: application/json" "$@"
 }
 
-echo "==> [1/3] pull-mirror $GITHUB_REPO -> $GITEA_URL/$OWNER/$REPO"
+echo "==> [0/4] token check (GET /api/v1/user)"
+check_code=$(curl -sS -o /dev/null -w "%{http_code}" \
+  -H "Authorization: token $GITEA_TOKEN" "$GITEA_URL/api/v1/user" || true)
+if [ "$check_code" != "200" ]; then
+    echo "    FAILED: HTTP $check_code" >&2
+    echo "    401 = server does not recognize the token. Check, in order:" >&2
+    echo "    1. Token was generated ON $GITEA_URL (Settings -> Applications)," >&2
+    echo "       not on gitea.com or another instance; not revoked/regenerated." >&2
+    echo "    2. Reverse proxy in front of Gitea: does it strip Authorization" >&2
+    echo "       or require its own basic-auth? Test from the Gitea host:" >&2
+    echo "         curl -o /dev/null -w '%{http_code}' -H 'Authorization: token ...' http://localhost:3000/api/v1/user" >&2
+    echo "       (localhost 200 + domain 401 = the proxy is eating the header)" >&2
+    echo "    3. Token scopes: needs write:repository (403 usually, but verify)." >&2
+    exit 1
+fi
+whoami=$(curl -sS -H "Authorization: token $GITEA_TOKEN" "$GITEA_URL/api/v1/user" | jq -r '.login')
+echo "    token OK (user: $whoami)"
+
+echo "==> [1/4] pull-mirror $GITHUB_REPO -> $GITEA_URL/$OWNER/$REPO"
 if api "$GITEA_URL/api/v1/repos/$OWNER/$REPO" > /dev/null 2>&1; then
   echo "    already exists, skipping"
 else
@@ -60,7 +79,7 @@ EOF
   echo "    created (interval $MIRROR_INTERVAL)"
 fi
 
-echo "==> [2/3] webhook (push-only, main only) -> $JENKINS_WEBHOOK_URL"
+echo "==> [2/4] webhook (push-only, main only) -> $JENKINS_WEBHOOK_URL"
 if api "$GITEA_URL/api/v1/repos/$OWNER/$REPO/webhooks" \
     | jq -e --arg url "$JENKINS_WEBHOOK_URL" \
         'map(.config.url == $url) | any' > /dev/null 2>&1; then
@@ -82,7 +101,7 @@ EOF
   echo "    created"
 fi
 
-echo "==> [3/3] forcing initial mirror sync"
+echo "==> [3/4] forcing initial mirror sync"
 api -X POST "$GITEA_URL/api/v1/repos/$OWNER/$REPO/mirror-sync" > /dev/null
 echo "    synced"
 
