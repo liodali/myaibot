@@ -74,6 +74,7 @@ except urllib.error.HTTPError as e:
 PYEOF
                   echo "--- POST http://ai-bot:3000/webhook (HMAC-signed) :"
                   podman run --rm --network chatwoot_internal \
+                    --security-opt label=disable \
                     -v "$PWD/smoke_webhook.py:/smoke.py:ro" \
                     -v /root/myaibot-runtime/.env:/runtime/.env:ro \
                     -e SMOKE_ACCOUNT="${ACCOUNT_ID}" \
