@@ -1,5 +1,12 @@
 # Changelog
 
+## v3.1.0 — Fluticon (2026-10)
+
+- New project: `projects/fluticon/` — FAQ built from the app's real plan
+  matrix (Free/Plus/Pro/Team/Enterprise), local-first generation, PNG→SVG,
+  device approval flows
+- Route it with `PROJECTS_NAME_MAP=...fluticon:fluticon`
+
 ## v3.0.0 — Multi-tenant routing (2026-10)
 
 One bot serves every project; the chat's inbox picks the knowledge base.

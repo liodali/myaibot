@@ -14,3 +14,6 @@ scripts/.webhook-token
 scripts/.deploy_key
 scripts/.deploy_key.pub
 scripts/.registry-token
+
+
+Failed to deserialize the JSON body into the target type: messages[0].role: unknown variant `developer`, expected one of `system`, `user`, `assistant`, `tool`, `latest_reminder` at line 1 column 55 (request_id: 201c9c3f-92e9-42c8-ac8d-35f7fb8a6501)
