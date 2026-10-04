@@ -73,8 +73,8 @@ pipeline {
                     sh '''
                       # login needs the registry HOST only (no namespace path)
                       REGISTRY_HOST="${GITEA_REGISTRY%%/*}"
-                      podman login "$REGISTRY_HOST" \
-                        -u "$REG_USER" --password-stdin <<< "$REG_PASS"
+                      printf '%s' "$REG_PASS" | podman login "$REGISTRY_HOST" \
+                        -u "$REG_USER" --password-stdin
                       podman push "$IMAGE:$TAG"
                       podman push "$IMAGE:latest"
                     '''
