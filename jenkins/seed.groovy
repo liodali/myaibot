@@ -30,7 +30,6 @@ def globalEnv = Jenkins.instance
 // fork users running their own Jenkins without our variables.
 def GITEA_MIRROR = globalEnv?.get('GITEA_MIRROR')
     ?: 'http://gitea.local:3000/liodali/myaibot.git'
-def GITEA_REGISTRY = globalEnv?.get('GITEA_REGISTRY') ?: 'gitea.local:3000'
 
 pipelineJob('myaibot') {
     displayName('MyAIBot')

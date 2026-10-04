@@ -24,11 +24,10 @@ pipeline {
     }
 
     environment {
-        // GITEA_REGISTRY comes from Jenkins GLOBAL environment variables
-        // (Manage Jenkins → System → Global properties) — set it there,
-        // never in this public file. GITEA_MIRROR is likewise global-env
-        // (used by the seed job).
-        IMAGE = "${env.GITEA_REGISTRY}/liodali/myaibot"
+        // GITEA_REGISTRY is the FULL image namespace (host + owner/repo),
+        // set as a Jenkins global env variable — e.g. "gitea:3000/medali/myaibot".
+        // Never real values in this public file.
+        IMAGE = "${env.GITEA_REGISTRY}"
         TAG = "main-${env.GIT_COMMIT?.take(7) ?: 'untagged'}"
     }
 
@@ -39,6 +38,10 @@ pipeline {
                     if (!env.GITEA_REGISTRY?.trim()) {
                         error('GITEA_REGISTRY is not set. Add it as a Jenkins ' +
                               'global environment variable (see docs/deploy.md).')
+                    }
+                    if (!env.GITEA_REGISTRY.contains('/')) {
+                        error('GITEA_REGISTRY must be the full namespace: ' +
+                              '<host[:port]>/<owner>/<repo> — e.g. gitea:3000/medali/myaibot')
                     }
                 }
             }
@@ -74,7 +77,9 @@ pipeline {
                     usernameVariable: 'REG_USER',
                     passwordVariable: 'REG_PASS')]) {
                     sh '''
-                      podman login "$GITEA_REGISTRY" \
+                      # login needs the registry HOST only (no namespace path)
+                      REGISTRY_HOST="${GITEA_REGISTRY%%/*}"
+                      podman login "$REGISTRY_HOST" \
                         -u "$REG_USER" --password-stdin <<< "$REG_PASS"
                       podman push "$IMAGE:$TAG"
                       podman push "$IMAGE:latest"

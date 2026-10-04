@@ -151,8 +151,8 @@ re-run. Manual equivalents below.
 
    | Variable | Example |
    |---|---|
-   | `GITEA_MIRROR` | `http://gitea.internal:3000/liodali/myaibot.git` |
-   | `GITEA_REGISTRY` | `gitea.internal:3000` |
+   | `GITEA_MIRROR` | `http://gitea.internal:3000/medali/myaibot.git` |
+   | `GITEA_REGISTRY` | `gitea.internal:3000/medali/myaibot` (full namespace: host + owner + repo) |
 
 6. **Seed job (one-time bootstrap)**: New Item → Freestyle → *seed*.
    Build step "Process Job DSLs" → "Use the provided DSL script" → paste
