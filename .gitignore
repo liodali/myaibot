@@ -1,6 +1,7 @@
 # Dart / Podman
 .dart_tool/
 .env
+scripts/gitea.env
 bot.json
 *.log
 .DS_Store

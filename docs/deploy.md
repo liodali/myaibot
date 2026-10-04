@@ -52,9 +52,8 @@ GitHub (public, source of truth)          your infra
 Fastest path — one idempotent script (requires `curl` + `jq`):
 
 ```bash
-export GITEA_URL="http://<gitea>:3000"
-export GITEA_TOKEN="<token with repo scope>"
-export JENKINS_WEBHOOK_URL="http://<jenkins>:8080/generic-webhook-trigger/invoke?token=<TOKEN>"
+cp scripts/gitea.env.example scripts/gitea.env
+# edit scripts/gitea.env: GITEA_URL, GITEA_TOKEN, JENKINS_WEBHOOK_URL
 bash scripts/gitea-setup.sh
 ```
 

@@ -14,7 +14,18 @@
 #   bash scripts/gitea-setup.sh
 #
 # Optional overrides: OWNER REPO GITHUB_REPO MIRROR_INTERVAL
+#
+# Config: copy scripts/gitea.env.example to scripts/gitea.env and fill
+# in the values — the script loads it automatically (git-ignored).
+# Or export the variables yourself; GITEA_ENV=path/to/file picks a
+# different file.
 set -euo pipefail
+
+ENV_FILE="${GITEA_ENV:-$(dirname "$0")/gitea.env}"
+if [ -f "$ENV_FILE" ]; then
+    # shellcheck disable=SC1090
+    . "$ENV_FILE"
+fi
 
 : "${GITEA_URL:?export GITEA_URL (e.g. http://gitea:3000)}"
 : "${GITEA_TOKEN:?export GITEA_TOKEN (Gitea token with repo scope)}"
