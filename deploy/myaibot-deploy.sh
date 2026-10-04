@@ -13,14 +13,14 @@ set -eu
 
 # Real endpoints live here, NEVER in the public repo.
 # /etc/myaibot/deploy.env (root-readable only):
-#   REGISTRY="gitea.yourhost:3000/liodali/myaibot"
+#   REGISTRY="gitea.yourhost:3000/<owner>/myaibot"
 #   DEPLOY_DIR="/opt/myaibot"
 if [ -f /etc/myaibot/deploy.env ]; then
     . /etc/myaibot/deploy.env
 fi
 
 DEPLOY_DIR="${DEPLOY_DIR:-/opt/myaibot}"
-REGISTRY="${REGISTRY:-gitea.local:3000/liodali/myaibot}"
+: "${REGISTRY:?set REGISTRY=\"<host[:port]>/<owner>/myaibot\" in /etc/myaibot/deploy.env}"
 TAG="${1:-latest}"
 
 cd "$DEPLOY_DIR"

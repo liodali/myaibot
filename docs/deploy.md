@@ -53,7 +53,7 @@ Fastest path — one idempotent script (requires `curl` + `jq`):
 
 ```bash
 cp scripts/gitea.env.example scripts/gitea.env
-# edit scripts/gitea.env: GITEA_URL, GITEA_TOKEN, JENKINS_WEBHOOK_URL
+# edit scripts/gitea.env: GITEA_URL, GITEA_TOKEN, OWNER, JENKENS_WEBHOOK_URL
 bash scripts/gitea-setup.sh
 ```
 
@@ -72,7 +72,7 @@ re-run. Manual equivalents below.
      -H "Content-Type: application/json" \
      -d '{
        "clone_addr": "https://github.com/liodali/myaibot.git",
-       "repo_owner": "liodali",
+       "repo_owner": "<owner>",
        "repo_name": "myaibot",
        "mirror": true,
        "mirror_interval": "8h0m0s",
@@ -81,11 +81,11 @@ re-run. Manual equivalents below.
      }'
 
    # force an instant sync later (≈ "Synchronize Now"):
-   curl -X POST "http://<gitea>:3000/api/v1/repos/liodali/myaibot/mirror-sync" \
+   curl -X POST "http://<gitea>:3000/api/v1/repos/<owner>/myaibot/mirror-sync" \
      -H "Authorization: token $GITEA_TOKEN"
    ```
 2. **Registry**: the built-in Gitea container registry serves this repo at
-   `gitea.local:3000/liodali/myaibot`. Create a token (Settings →
+   `<host[:port]>/<owner>/myaibot`. Create a token (Settings →
    Applications) with `write:package` for the Jenkins push user; store it
    as Jenkins credential `myaibot-registry` (username/password).
 3. **Webhook**: repo Settings → Webhooks:
@@ -103,7 +103,7 @@ re-run. Manual equivalents below.
    CLI equivalent (API — webhooks are also not covered by `tea`):
 
    ```bash
-   curl -X POST "http://<gitea>:3000/api/v1/repos/liodali/myaibot/webhooks" \
+   curl -X POST "http://<gitea>:3000/api/v1/repos/<owner>/myaibot/webhooks" \
      -H "Authorization: token $GITEA_TOKEN" \
      -H "Content-Type: application/json" \
      -d '{
@@ -151,8 +151,8 @@ re-run. Manual equivalents below.
 
    | Variable | Example |
    |---|---|
-   | `GITEA_MIRROR` | `http://gitea.internal:3000/medali/myaibot.git` |
-   | `GITEA_REGISTRY` | `gitea.internal:3000/medali/myaibot` (full namespace: host + owner + repo) |
+   | `GITEA_MIRROR` | `http://gitea.internal:3000/<owner>/myaibot.git` |
+   | `GITEA_REGISTRY` | `gitea.internal:3000/<owner>/myaibot` (full namespace: host + owner + repo) |
 
 6. **Seed job (one-time bootstrap)**: New Item → Freestyle → *seed*.
    Build step "Process Job DSLs" → "Use the provided DSL script" → paste
@@ -171,7 +171,7 @@ mkdir -p /opt/myaibot /etc/myaibot && cp deploy/compose.prod.yml /opt/myaibot/do
 
 # Real registry endpoint — lives on the host only, never in the repo:
 cat > /etc/myaibot/deploy.env <<'EOF'
-REGISTRY="gitea.internal:3000/liodali/myaibot"
+REGISTRY="gitea.internal:3000/<owner>/myaibot"
 EOF
 chmod 600 /etc/myaibot/deploy.env
 

@@ -11,7 +11,7 @@ services:
   bot:
     # Placeholder registry — myaibot-deploy.sh rewrites this line with the
     # real REGISTRY from /etc/myaibot/deploy.env on each deploy.
-    image: gitea.local:3000/liodali/myaibot:latest
+    image: REPLACED-BY-DEPLOY-SCRIPT/myaibot:latest
     env_file: .env
     restart: always
     healthcheck:

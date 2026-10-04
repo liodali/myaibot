@@ -25,7 +25,7 @@ pipeline {
 
     environment {
         // GITEA_REGISTRY is the FULL image namespace (host + owner/repo),
-        // set as a Jenkins global env variable — e.g. "gitea:3000/medali/myaibot".
+        // set as a Jenkins global env variable — e.g. "gitea:3000/<owner>/myaibot".
         // Never real values in this public file.
         IMAGE = "${env.GITEA_REGISTRY}"
         TAG = "main-${env.GIT_COMMIT?.take(7) ?: 'untagged'}"
@@ -41,7 +41,7 @@ pipeline {
                     }
                     if (!env.GITEA_REGISTRY.contains('/')) {
                         error('GITEA_REGISTRY must be the full namespace: ' +
-                              '<host[:port]>/<owner>/<repo> — e.g. gitea:3000/medali/myaibot')
+                              '<host[:port]>/<owner>/<repo> — e.g. gitea:3000/<owner>/myaibot')
                     }
                 }
             }

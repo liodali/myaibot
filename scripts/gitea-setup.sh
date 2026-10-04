@@ -13,7 +13,7 @@
 #   export JENKINS_WEBHOOK_URL="http://jenkins:8080/generic-webhook-trigger/invoke?token=..."
 #   bash scripts/gitea-setup.sh
 #
-# Optional overrides: OWNER REPO GITHUB_REPO MIRROR_INTERVAL
+# Optional overrides: REPO GITHUB_REPO MIRROR_INTERVAL
 #
 # Config: copy scripts/gitea.env.example to scripts/gitea.env and fill
 # in the values — the script loads it automatically (git-ignored).
@@ -31,8 +31,9 @@ fi
 : "${GITEA_TOKEN:?export GITEA_TOKEN (Gitea token with repo scope)}"
 : "${JENKINS_WEBHOOK_URL:?export JENKINS_WEBHOOK_URL (Jenkins invoke URL incl. ?token=)}"
 
-OWNER="${OWNER:-liodali}"
+: "${OWNER:?set OWNER (your Gitea user/org, e.g. in gitea.env)}"
 REPO="${REPO:-myaibot}"
+# Upstream GitHub source — the one owner that IS fixed (public repo).
 GITHUB_REPO="${GITHUB_REPO:-https://github.com/liodali/$REPO.git}"
 MIRROR_INTERVAL="${MIRROR_INTERVAL:-8h0m0s}"
 

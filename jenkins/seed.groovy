@@ -29,7 +29,7 @@ def globalEnv = Jenkins.instance
 // Injected from Jenkins global env; placeholders keep the seed valid for
 // fork users running their own Jenkins without our variables.
 def GITEA_MIRROR = globalEnv?.get('GITEA_MIRROR')
-    ?: 'http://gitea.local:3000/liodali/myaibot.git'
+    ?: 'http://gitea.local:3000/<owner>/myaibot.git'
 
 pipelineJob('myaibot') {
     displayName('MyAIBot')
