@@ -17,9 +17,8 @@ Future<void> main() async {
       'handoffKeyword': config.handoffKeyword,
       'projectsRoot': config.projectsRoot,
       'defaultProject': config.defaultProject,
-      'projectsMap': config.projectsMap.map(
-        (k, v) => MapEntry(k.toString(), v),
-      ),
+      'projectsMap': config.projectsMap,
+      'projectsNameMap': config.projectsNameMap,
       'maxHistory': config.maxHistory,
       'signatureVerification': config.botSecret.isNotEmpty,
     }),

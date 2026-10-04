@@ -67,7 +67,7 @@ Future<void> handleIncoming(AppConfig config, ChatwootEvent event) async {
   }
 
   // Which project's knowledge applies? The inbox id routes the chat.
-  final project = config.projectFor(event.inboxId);
+  final project = config.projectFor(event.inboxId, event.inboxName);
   final preview = text.length > 100 ? text.substring(0, 100) : text;
   logger.info(
     'conv=$conversationId account=$accountId '

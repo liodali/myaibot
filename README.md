@@ -134,8 +134,11 @@ Agent Bot is attached to **all** inboxes, every event carries `inbox.id`,
 and `PROJECTS_MAP` selects that project's knowledge base:
 
 ```
-PROJECTS_MAP=3:wasfa,7:exchangeconvertapp     # inbox id -> project dir
-DEFAULT_PROJECT=default                        # unmapped inboxes
+PROJECTS_MAP=9:wasfa                                    # exact inbox id (wins)
+PROJECTS_NAME_MAP=sovereign:sovereignledger,\
+                   api.exchange:exchangeconvertapp,\
+                   wasfa:wasfa                          # inbox-name substring
+DEFAULT_PROJECT=default                                 # everything else
 ```
 
 - Per-project knowledge: `projects/<name>/knowledge/faq.md` (baked into the

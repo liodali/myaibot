@@ -17,7 +17,8 @@ pipeline {
     parameters {
         string(name: 'ACCOUNT_ID', defaultValue: '1', description: 'Chatwoot account id for the fake event')
         string(name: 'CONVERSATION_ID', defaultValue: '999999', description: 'Fake conversation id (does not exist — handler will log a fetch failure, that is OK)')
-        string(name: 'INBOX_ID', defaultValue: '', description: 'Inbox id to simulate routing (empty = no inbox field → routes to DEFAULT_PROJECT). Set to a PROJECTS_MAP key, e.g. 3, to watch it route to that project.')
+        string(name: 'INBOX_ID', defaultValue: '', description: 'Inbox id to simulate routing (empty = no id). Takes precedence over the name.')
+        string(name: 'INBOX_NAME', defaultValue: 'Website api.exchange.dev.adetify.com', description: 'Inbox name to simulate name-based routing (PROJECTS_NAME_MAP substring match)')
     }
 
     stages {
@@ -51,8 +52,13 @@ body_d = {
     'account': {'id': int(os.environ.get('SMOKE_ACCOUNT', '1'))},
     'conversation': {'id': int(os.environ.get('SMOKE_CONV', '999999')), 'status': 'pending'},
 }
+inbox = {}
 if os.environ.get('SMOKE_INBOX', ''):
-    body_d['inbox'] = {'id': int(os.environ['SMOKE_INBOX'])}
+    inbox['id'] = int(os.environ['SMOKE_INBOX'])
+if os.environ.get('SMOKE_INBOX_NAME', ''):
+    inbox['name'] = os.environ['SMOKE_INBOX_NAME']
+if inbox:
+    body_d['inbox'] = inbox
 body = json.dumps(body_d).encode()
 ts = str(int(time.time()))
 sig = 'sha256=' + hmac.new(secret.encode(), (ts + '.' + body.decode()).encode(),

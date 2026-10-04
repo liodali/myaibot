@@ -50,6 +50,7 @@ class ChatwootEvent {
   final int? conversationId;
   final String? conversationStatus;
   final int? inboxId;
+  final String? inboxName;
 
   const ChatwootEvent({
     required this.event,
@@ -61,6 +62,7 @@ class ChatwootEvent {
     this.conversationId,
     this.conversationStatus,
     this.inboxId,
+    this.inboxName,
   });
 
   /// Parse a Chatwoot webhook payload. Throws [FormatException] on bad JSON.
@@ -75,6 +77,9 @@ class ChatwootEvent {
   static ChatwootEvent fromJson(Map<String, dynamic> json) {
     final account = json['account'];
     final conversation = json['conversation'];
+    final inbox = json['inbox'] is Map<String, dynamic>
+        ? json['inbox'] as Map<String, dynamic>
+        : const <String, dynamic>{};
     return ChatwootEvent(
       event: json['event']?.toString() ?? '',
       id: json['id'] is int ? json['id'] as int : null,
@@ -93,11 +98,8 @@ class ChatwootEvent {
           conversation is Map<String, dynamic>
               ? conversation['status']?.toString()
               : null,
-      inboxId:
-          json['inbox'] is Map<String, dynamic> &&
-                  (json['inbox'] as Map<String, dynamic>)['id'] is int
-              ? (json['inbox'] as Map<String, dynamic>)['id'] as int
-              : null,
+      inboxId: inbox['id'] is int ? inbox['id'] as int : null,
+      inboxName: inbox['name']?.toString(),
     );
   }
 }

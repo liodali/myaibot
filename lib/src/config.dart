@@ -78,17 +78,18 @@ double doubleEnv(String name, double fallback) {
 
 String _trimUrl(String url) => url.replaceAll(RegExp(r'/+$'), '');
 
-/// Parse "inboxId:project,inboxId:project" into a routing map.
-Map<int, String> parseProjectsMap(String raw) {
-  final map = <int, String>{};
+/// Parse "key:project,key:project" into an ordered (substring, project) list.
+/// Shared by the id map (int keys) and the name map (string keys).
+Map<String, String> parseRoutingEntries(String raw) {
+  final map = <String, String>{};
   for (final entry in raw.split(',')) {
     final t = entry.trim();
     if (t.isEmpty) continue;
     final idx = t.indexOf(':');
     if (idx <= 0) continue;
-    final id = int.tryParse(t.substring(0, idx).trim());
-    final name = t.substring(idx + 1).trim();
-    if (id != null && name.isNotEmpty) map[id] = name;
+    final key = t.substring(0, idx).trim();
+    final project = t.substring(idx + 1).trim();
+    if (key.isNotEmpty && project.isNotEmpty) map[key] = project;
   }
   return map;
 }
@@ -123,14 +124,26 @@ class AppConfig {
   final String systemPrompt;
   final String projectsRoot;
   final String defaultProject;
-  final Map<int, String> projectsMap;
+  final Map<String, String> projectsMap; // exact inbox-id -> project
+  final Map<String, String> projectsNameMap; // inbox-name substring -> project
 
-  /// Which project's knowledge applies to a chat from [inboxId]?
-  /// Unmapped inboxes fall back to [defaultProject].
-  String projectFor(int? inboxId) =>
-      inboxId == null
-          ? defaultProject
-          : (projectsMap[inboxId] ?? defaultProject);
+  /// Which project's knowledge applies to a chat?
+  /// Precedence: exact inbox id -> inbox-name substring (first match in
+  /// PROJECTS_NAME_MAP order) -> [defaultProject].
+  String projectFor(int? inboxId, String? inboxName) {
+    if (inboxId != null) {
+      final byId = projectsMap[inboxId.toString()];
+      if (byId != null) return byId;
+    }
+    final name = inboxName?.toLowerCase() ?? '';
+    if (name.isNotEmpty) {
+      for (final e in projectsNameMap.entries) {
+        if (name.contains(e.key.toLowerCase())) return e.value;
+      }
+    }
+    return defaultProject;
+  }
+
   final int maxHistory;
   final bool onlyWhenPending;
   final String handoffKeyword;
@@ -139,6 +152,7 @@ class AppConfig {
     required this.projectsRoot,
     required this.defaultProject,
     required this.projectsMap,
+    required this.projectsNameMap,
     required this.port,
     required this.host,
     required this.logLevel,
@@ -179,7 +193,8 @@ class AppConfig {
     ),
     projectsRoot: optionalEnv('PROJECTS_ROOT', '/app/projects'),
     defaultProject: optionalEnv('DEFAULT_PROJECT', 'default'),
-    projectsMap: parseProjectsMap(optionalEnv('PROJECTS_MAP', '')),
+    projectsMap: parseRoutingEntries(optionalEnv('PROJECTS_MAP', '')),
+    projectsNameMap: parseRoutingEntries(optionalEnv('PROJECTS_NAME_MAP', '')),
     maxHistory: intEnv('MAX_HISTORY', 10),
     onlyWhenPending: boolEnv('ONLY_WHEN_PENDING', true),
     handoffKeyword: optionalEnv('HANDOFF_KEYWORD', '[HANDOFF]'),
