@@ -10,7 +10,7 @@ environment:
 
 dependencies:
   relic: 2.0.0-rc.2
-  crypto: ^3.0.6
+  crypto: ^3.0.8
 
 dev_dependencies:
-  lints: ^5.0.0
+  lints: ^6.1.0
